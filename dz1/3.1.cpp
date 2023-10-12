@@ -22,7 +22,7 @@ public:
     int pop_back();
 
     // Проверка на пустоту.
-    bool IsEmpty() const { return head == tail; }
+    [[nodiscard]] bool IsEmpty() const { return head == tail; }
 
 private:
     int *buffer;
@@ -72,10 +72,10 @@ int Queue::pop_back() {
 
 int main() {
     Queue Q(1000001);
-    int numCommadns = 0;
-    cin >> numCommadns;
+    int NumCommands = 0;
+    cin >> NumCommands;
     bool isCorrect = true;
-    for (int i = 0; i < numCommadns; ++i) {
+    for (int i = 0; i < NumCommands; ++i) {
         int command = 0, value = 0;
         cin >> command >> value;
         switch (command) {
@@ -95,6 +95,8 @@ int main() {
                 if (element != value) isCorrect = false;
                 break;
             }
+            default:
+                break;
         }
 
     }
