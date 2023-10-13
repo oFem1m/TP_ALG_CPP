@@ -22,17 +22,12 @@ int find_m(const int *A, int n) {
 int main() {
     int n;
     cin >> n;
-
     int* A = new int[n];
-
     for (int i = 0; i < n; ++i) {
         cin >> A[i];
     }
-
     int m = find_m(A, n);
     cout << m;
-
     delete[] A;
-
     return 0;
 }
