@@ -2,14 +2,16 @@
 
 using namespace std;
 
+/*Вернуть значение бита в числе N по его номеру K.*/
+
 int find_bit(int number, int bit) {
     int shift = number >> bit;
     return shift & 1;
 }
 
 int main() {
-    int number = 0, bit = 0;
-    cin >> number >> bit;
-    cout << find_bit(number, bit) << endl;
+    int N = 0, K = 0;
+    cin >> N >> K;
+    cout << find_bit(N, K) << endl;
     return 0;
 }
