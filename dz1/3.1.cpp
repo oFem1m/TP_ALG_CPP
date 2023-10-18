@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,6 +14,7 @@ a = 2 - pop front
 a = 3 - push back
 a = 4 - pop back
 Команды добавления элемента 1 и 3 заданы с неотрицательным параметром b.
+Для очереди используются команды 2 и 3.
 Если дана команда pop*, то число b - ожидаемое значение. Если команда pop вызвана для пустой структуры данных,
 то ожидается “-1”.
 
@@ -27,17 +29,11 @@ public:
 
     ~Queue() { delete[] buffer; }
 
-    // Добавление элемента в начало
-    void push_front(int a);
-
     // Удаление первого элемента
     int pop_front();
 
     // Добавление элемента в конец
     void push_back(int a);
-
-    // Удаление последнего элемента
-    int pop_back();
 
     // Проверка на пустоту.
     [[nodiscard]] bool IsEmpty() const { return head == tail; }
@@ -47,8 +43,12 @@ private:
     int bufferSize;
     int head;
     int tail;
+
+    // Увеличение буфера
+    void grow();
 };
 
+// Инициализация
 Queue::Queue(int size) :
         bufferSize(size),
         head(0),
@@ -56,40 +56,37 @@ Queue::Queue(int size) :
     buffer = new int[bufferSize];
 }
 
-// Добавление элемента в начало
-void Queue::push_front(int a) {
-    assert((tail + 1) % bufferSize != head);
-    head = (head - 1 + bufferSize) % bufferSize;
-    buffer[head] = a;
-}
-
 // Извлечение первого элемента
 int Queue::pop_front() {
     assert(head != tail);
     int result = buffer[head];
-    head = (head + 1) % bufferSize;
-
+    ++head;
     return result;
 }
 
 // Добавление элемента в конец
 void Queue::push_back(int a) {
-    assert((tail + 1) % bufferSize != head);
+    if (tail >= bufferSize) {
+        grow();
+    }
     buffer[tail] = a;
-    tail = (tail + 1) % bufferSize;
+    ++tail;
 }
 
-// Извлечение последнего элемента
-int Queue::pop_back() {
-    assert(head != tail);
-    tail = (tail - 1 + bufferSize) % bufferSize;
-    int result = buffer[tail];
-
-    return result;
+// Увеличение буфера
+void Queue::grow() {
+    int newBufferSize = max(bufferSize * 2, 1);
+    int* newBuffer = new int[newBufferSize];
+    copy(buffer + head, buffer + tail, newBuffer);
+    tail -= head;
+    head = 0;
+    delete[] buffer;
+    buffer = newBuffer;
+    bufferSize = newBufferSize;
 }
 
 int main() {
-    Queue Q(1000001);
+    Queue Q(1);
     int NumCommands = 0;
     cin >> NumCommands;
     bool isCorrect = true;
@@ -97,9 +94,6 @@ int main() {
         int command = 0, value = 0;
         cin >> command >> value;
         switch (command) {
-            case 1:
-                Q.push_front(value);
-                break;
             case 2: {
                 int element = (Q.IsEmpty()) ? -1 : Q.pop_front();
                 if (element != value) isCorrect = false;
@@ -108,11 +102,6 @@ int main() {
             case 3:
                 Q.push_back(value);
                 break;
-            case 4: {
-                int element = (Q.IsEmpty()) ? -1 : Q.pop_back();
-                if (element != value) isCorrect = false;
-                break;
-            }
             default:
                 break;
         }
