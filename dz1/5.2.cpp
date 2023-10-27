@@ -1,27 +1,62 @@
 #include <iostream>
-#include <algorithm>
 
-struct Person {
-    int id, birthDay, deathDay;
+using namespace std;
 
-    bool operator<(const Person& other) const {
-        return birthDay < other.birthDay;
-    }
+/*Группа людей называется современниками если был такой момент, когда они могли собраться вместе.
+Для этого в этот момент каждому из них должно было уже исполниться 18 лет, но ещё не исполниться 80 лет.
+Дан список Жизни Великих Людей. Необходимо получить максимальное количество современников.
+В день 18летия человек уже может принимать участие в собраниях, а в день 80летия и в день смерти уже не может.
+Замечание:
+Человек мог не дожить до 18-летия, либо умереть в день 18-летия. В этих случаях принимать участие в собраниях он не мог.
+*/
+
+struct Event {
+    int day, month, year;
+    int type;
 };
 
-template <typename T, typename Compare>
-void mergeSort(T* arr, int left, int right, Compare comp) {
+bool compareEvents(const Event &e1, const Event &e2) {
+    if (e1.year == e2.year) {
+        if (e1.month == e2.month) {
+            if (e1.day == e2.day) {
+                return e1.type < e2.type;
+            }
+            return e1.day < e2.day;
+        }
+        return e1.month < e2.month;
+    }
+    return e1.year < e2.year;
+}
+
+int findMaxContemporaries(Event *events, int n) {
+    int maxContemporaries = 0;
+    int currentContemporaries = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (events[i].type == 0) {
+            currentContemporaries++;
+        } else if (events[i].type == 1) {
+            currentContemporaries--;
+        }
+
+        maxContemporaries = max(maxContemporaries, currentContemporaries);
+    }
+
+    return maxContemporaries;
+}
+
+template<typename T, typename Compare>
+void mergeSort(T *arr, int left, int right, Compare comp) {
     if (left < right) {
         int mid = left + (right - left) / 2;
-
         mergeSort(arr, left, mid, comp);
         mergeSort(arr, mid + 1, right, comp);
 
         int n1 = mid - left + 1;
         int n2 = right - mid;
 
-        T* leftArr = new T[n1];
-        T* rightArr = new T[n2];
+        T *leftArr = new T[n1];
+        T *rightArr = new T[n2];
 
         for (int i = 0; i < n1; i++)
             leftArr[i] = arr[left + i];
@@ -34,8 +69,7 @@ void mergeSort(T* arr, int left, int right, Compare comp) {
             if (comp(leftArr[i], rightArr[j])) {
                 arr[k] = leftArr[i];
                 i++;
-            }
-            else {
+            } else {
                 arr[k] = rightArr[j];
                 j++;
             }
@@ -47,7 +81,6 @@ void mergeSort(T* arr, int left, int right, Compare comp) {
             i++;
             k++;
         }
-
         while (j < n2) {
             arr[k] = rightArr[j];
             j++;
@@ -59,48 +92,105 @@ void mergeSort(T* arr, int left, int right, Compare comp) {
     }
 }
 
+bool isLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int daysInMonth(int month, int year) {
+    if (month == 2) {
+        return isLeapYear(year) ? 29 : 28;
+    }
+    else if (month == 4 || month == 6 || month == 9 || month == 11) {
+        return 30;
+    }
+    else {
+        return 31;
+    }
+}
+
+void dec_date(int &day, int &month, int &year) {
+    day--;
+
+    if (day == 0) {
+        month--;
+
+        if (month == 0) {
+            year--;
+            month = 12;
+        }
+
+        day = daysInMonth(month, year);
+    }
+}
+
+void add_years(int &day, int &month, int &year, int add_years) {
+    year += add_years;
+
+    if (isLeapYear(year)) {
+        if (month == 2 && day == 29) {
+            // Если текущая дата 29 февраля, ничего не делаем
+        }
+        else if (month == 2 && day > 29) {
+            day = 29;
+        }
+    }
+    else {
+        if (month == 2 && day >= 29) {
+            day = 28;
+        }
+    }
+}
+
+int full_years(int day_birth, int month_birth, int year_birth, int day_death, int month_death, int year_death) {
+    int years = year_death - year_birth;
+
+    if (month_death < month_birth || (month_death == month_birth && day_death < day_birth)) {
+        years--;
+    }
+
+    return years;
+}
+
+
 int main() {
     int n;
-    std::cin >> n;
-    Person* people = new Person[n];
+    cin >> n;
+
+    auto *events = new Event[2 * n];
+    int eventIndex = 0;
 
     for (int i = 0; i < n; i++) {
-        people[i].id = i;
-        std::cin >> people[i].birthDay;
-        std::cin >> people[i].deathDay;
-    }
-
-    // Sort the people by birthDay using the mergeSort template
-    mergeSort(people, 0, n - 1, [](const Person& a, const Person& b) {
-        return a.birthDay < b.birthDay;
-    });
-
-    int maxContemporary = 0;
-    int contemporary = 0;
-    int currentYear = 0;
-
-    for (int i = 0; i < n; i++) {
-        const Person& person = people[i];
-        if (person.birthDay > currentYear) {
-            if (person.birthDay > currentYear + 80) {
-                // If a person's birthDay is more than 80 years after the currentYear, skip to the next year
-                currentYear = person.birthDay - 80;
-            } else {
-                currentYear = person.birthDay;
-            }
+        int day_birth, month_birth, year_birth;
+        int day_death, month_death, year_death;
+        cin >> day_birth >> month_birth >> year_birth
+            >> day_death >> month_death >> year_death;
+        if (full_years(day_birth, month_birth, year_birth, day_death, month_death, year_death) < 18) {
+            events[eventIndex++] = {0, 0, 0, 2}; // 2 для исключения
+            events[eventIndex++] = {0, 0, 0, 2};
+            continue;
+        } else if (full_years(day_birth, month_birth, year_birth, day_death, month_death, year_death) == 80) {
+            day_death = day_birth;
+            month_death = month_birth;
+        } else if ((year_death - year_birth) > 80){
+            day_death = day_birth;
+            month_death = month_birth;
+            year_death = year_birth;
+            add_years(day_death, month_death, year_death, 80);
         }
 
-        if (person.birthDay <= currentYear && person.deathDay >= currentYear + 18) {
-            int maxAllowedDeath = std::min(currentYear + 80, person.deathDay);
-            contemporary++;
-            currentYear = maxAllowedDeath;
-        }
-
-        maxContemporary = std::max(maxContemporary, contemporary);
+        add_years(day_birth, month_birth, year_birth, 18);
+        dec_date(day_death, month_death, year_death);
+        events[eventIndex++] = {day_birth, month_birth, year_birth, 0}; // 0 = рождение
+        events[eventIndex++] = {day_death, month_death, year_death, 1}; // 1 = смерть
     }
 
-    std::cout << maxContemporary << std::endl;
+    mergeSort(events, 0, 2 * n - 1, compareEvents);
 
-    delete[] people;
+    int maxContemporaries = findMaxContemporaries(events, 2 * n);
+
+    cout << maxContemporaries << endl;
+
+    delete[] events;
+
     return 0;
 }

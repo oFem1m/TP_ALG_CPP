@@ -3,3 +3,6 @@
 
 # idea
 /.idea/
+
+#trash
+/test.cpp
