@@ -1,112 +1,165 @@
 #include <iostream>
 #include <vector>
-#include <string>
 
-class DynamicHashSet {
+
+using namespace ::std;
+const float MAX_ALPHA = 0.75;
+
+struct HashTableNode {
+    string key;
+};
+
+class HashTable {
 private:
-    int size;
-    int count;
-    std::vector<std::string> table;
+    float realSize = 0;
+    vector<HashTableNode> table;
+    vector<bool> deleted;
 
-    int hashFunction(const std::string& key) {
-        int hashValue = 0;
-        int a = 31;
-        for (char ch : key) {
-            hashValue = (a * hashValue + static_cast<int>(ch)) % size;
+    int hash1(const std::string &key) {
+        int hash = 0;
+        for (char i : key) {
+            hash = hash * 137 + i;
         }
-        return hashValue;
+        return hash;
     }
 
-    int doubleHashing(const std::string& key) {
-        int hashValue = hashFunction(key);
-        return 1 + (hashValue % (size - 1));
+    int hash2(const std::string &key) {
+        int hash = 5;
+        for (int i = 0; i < key.size(); i++) {
+            hash += (key[i] + i) * 257;
+        }
+        return (2 * hash) + 1; // Возвращаем результат, который всегда больше нуля
     }
-
     void rehash() {
-        std::vector<std::string> oldTable = table;
-        size *= 2;
-        table.assign(size, "");
-        count = 0;
-
-        for (const std::string& item : oldTable) {
-            if (!item.empty()) {
-                add(item);
+        vector<HashTableNode> NewTable(2 * table.size());
+        vector<bool> NewDeleted(2 * deleted.size(), false);
+        for (int i = 0; i < table.size(); i++) {
+            if (!table[i].key.empty() && !deleted[i]) {
+                HashTableNode elem = table[i];
+                int x = hash1(elem.key) % NewTable.size();
+                int y = hash2(elem.key) % NewTable.size();
+                for (int j = 0; j < NewTable.size(); j++) {
+                    if (NewTable[x].key == elem.key) {
+                        break;
+                    }
+                    if (NewTable[x].key.empty()) {
+                        NewTable[x] = elem;
+                        break;
+                    }
+                    x = (x + y) % NewTable.size();
+                }
             }
         }
+        table = NewTable;
+        deleted = NewDeleted;
     }
 
 public:
-    DynamicHashSet() : size(8), count(0), table(size, "") {}
+    explicit HashTable(size_t size) : table(size), deleted(size, false) {}
 
-    std::string add(const std::string& key) {
-        if (count >= 3 * size / 4) {
+    ~HashTable() {
+        table.clear();
+        deleted.clear();
+    }
+
+    bool Add(const HashTableNode& elem) {
+        float loadFactor = realSize / float(table.size());
+        if (loadFactor >= MAX_ALPHA) {
             rehash();
         }
-
-        int initialHash = hashFunction(key);
-        int step = doubleHashing(key);
-
-        while (!table[initialHash].empty()) {
-            if (table[initialHash] == key) {
-                return "FAIL";
+        // за x берём результат первой хеш-функции
+        int x = hash1(elem.key) % table.size();
+        // за y берём результат второй хеш-функции
+        int y = hash2(elem.key) % table.size();
+        // для сохранения индекса элемента, если он удалён
+        int DeletedItem = 0;
+        for (int i = 0; i < table.size(); i++) {
+            if (table[x].key == elem.key && !deleted[x]) {
+                return false;
             }
-
-            initialHash = (initialHash + step) % size;
+            if (deleted[x]) {
+                DeletedItem = x;
+                for (int j = 0; j < table.size(); j++) {
+                    x = (x + y) % table.size();
+                    if (table[x].key == elem.key && !deleted[x]) {
+                        return false;
+                    }
+                }
+                table[DeletedItem] = elem;
+                deleted[DeletedItem] = false;
+                realSize++;
+                return true;
+            }
+            if (table[x].key.empty()) {
+                table[x] = elem;
+                deleted[x] = false;
+                realSize++;
+                return true;
+            }
+            x = (x + y) % table.size();
         }
-
-        table[initialHash] = key;
-        count++;
-        return "OK";
+        return false;
     }
 
-    std::string remove(const std::string& key) {
-        int initialHash = hashFunction(key);
-        int step = doubleHashing(key);
 
-        while (!table[initialHash].empty()) {
-            if (table[initialHash] == key) {
-                table[initialHash] = "";
-                count--;
-                return "OK";
+    bool Has(const HashTableNode elem) {
+        int x = hash1(elem.key) % table.size();
+        int y = hash2(elem.key) % table.size();
+        for (int i = 0; i < table.size(); i++) {
+            if (!table[x].key.empty()) {
+                if (table[x].key == elem.key && !deleted[x]) {
+                    return true;
+                }
+            } else {
+                return false;
             }
-
-            initialHash = (initialHash + step) % size;
+            x = (x + y) % table.size();
         }
-
-        return "FAIL";
+        return false;
     }
 
-    std::string contains(const std::string& key) {
-        int initialHash = hashFunction(key);
-        int step = doubleHashing(key);
-
-        while (!table[initialHash].empty()) {
-            if (table[initialHash] == key) {
-                return "OK";
+    bool Delete(const HashTableNode& elem) {
+        int x = hash1(elem.key) % table.size();
+        int y = hash2(elem.key) % table.size();
+        for (int i = 0; i < table.size(); i++) {
+            if (!table[x].key.empty()) {
+                if (table[x].key == elem.key && !deleted[x]) {
+                    deleted[x] = true;
+                    realSize--;
+                    return true;
+                }
+            } else {
+                return false;
             }
-
-            initialHash = (initialHash + step) % size;
+            x = (x + y) % table.size();
         }
-
-        return "FAIL";
+        return false;
     }
 };
 
 int main() {
-    DynamicHashSet hashSet;
+    HashTable table(8);
 
-    char operation;
-    std::string key;
-
-    while (std::cin >> operation >> key) {
-        if (operation == '+') {
-            std::cout << hashSet.add(key) << std::endl;
-        } else if (operation == '-') {
-            std::cout << hashSet.remove(key) << std::endl;
-        } else if (operation == '?') {
-            std::cout << hashSet.contains(key) << std::endl;
+    char op;
+    string key;
+    HashTableNode node;
+    while (std::cin >> op >> node.key) {
+        switch (op) {
+            case '?': {
+                std::cout << (table.Has(node) ? "OK" : "FAIL") << std::endl;
+                break;
+            }
+            case '+': {
+                cout << (table.Add(node) ? "OK" : "FAIL") << std::endl;
+                break;
+            }
+            case '-': {
+                std::cout << (table.Delete(node) ? "OK" : "FAIL") << std::endl;
+                break;
+            }
+            default:
+                return 1;
         }
     }
-
     return 0;
 }
