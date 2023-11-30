@@ -95,17 +95,19 @@ public:
         }
     }
 
-    // Вывод B-дерева по слоям
-    void printBTree() {
+    // возвращение B-дерева по слоям
+    vector<vector<Key>> returnBTree() {
+        vector<vector<Key>> result;
         if (root == nullptr) {
-            cout << "Empty tree\n";
-            return;
+            return result;
         }
 
         queue<BNode*> nodeQueue;
         nodeQueue.push(root);
+        int i = 0;
 
         while (!nodeQueue.empty()) {
+            vector<Key> slice;
             int nodesInCurrentLevel = nodeQueue.size();
 
             while (nodesInCurrentLevel > 0) {
@@ -113,8 +115,7 @@ public:
                 nodeQueue.pop();
 
                 for (const Key& key : currentNode->keys)
-                    cout << key << " ";
-
+                    slice.push_back(key);
 
                 for (BNode* child : currentNode->children)
                     if (child != nullptr)
@@ -123,8 +124,9 @@ public:
                 nodesInCurrentLevel--;
             }
 
-            cout << endl;
+            result.push_back(slice);
         }
+        return result;
     }
 };
 
@@ -140,8 +142,15 @@ int main() {
             break;
         bTree.insert(key);
     }
+    vector<vector<int>> result;
 
-    bTree.printBTree();
+    result = bTree.returnBTree();
+
+    for (const auto& i: result){
+        for (auto j: i)
+            cout << j << " ";
+        cout << endl;
+    }
 
     return 0;
 }
