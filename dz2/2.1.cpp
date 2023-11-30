@@ -47,7 +47,7 @@ struct BinaryTree {
         }
     }
 
-    void inOrderTraversal(const function<bool(int, int)>& compare) const {
+    void inOrderTraversal(const function<bool(int, int)>& compare, const function<void(int)>& outputFunction) const {
         stack<Node*> nodes;
         Node* currentNode = root;
 
@@ -60,7 +60,7 @@ struct BinaryTree {
             currentNode = nodes.top();
             nodes.pop();
 
-            cout << currentNode->key << " ";
+            outputFunction(currentNode->key);
 
             currentNode = currentNode->right;
         }
@@ -78,13 +78,15 @@ int main() {
 
     function<bool(int, int)> compare = [](int a, int b) { return a <= b; };
 
+    function<void(int)> outputFunction = [](int value) { cout << value << " "; };
+
     for (int i = 1; i < N; ++i) {
         int value;
         cin >> value;
         tree.insert(value, compare);
     }
 
-    tree.inOrderTraversal(compare);
+    tree.inOrderTraversal(compare, outputFunction);
 
     return 0;
 }

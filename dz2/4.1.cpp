@@ -1,4 +1,5 @@
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <stack>
 #include <functional>
@@ -44,9 +45,9 @@ public:
         explicit TreeNode(int key) : Key(key), Height(1), Left(nullptr), Right(nullptr), Number(1) {}
     };
 
-    using CompareFunction = std::function<bool(int, int)>;
+    using CompareFunction = function<bool(int, int)>;
 
-    explicit AVLTree(CompareFunction compareFunc) : root(nullptr), compareFunction(compareFunc) {}
+    explicit AVLTree(CompareFunction compareFunc) : root(nullptr), compareFunction(std::move(compareFunc)) {}
 
     TreeNode *InsertAndGetPos(int key, int &pos) {
         root = InsertAndGetPos(root, key, pos);
@@ -127,16 +128,15 @@ private:
         return Balance(root);
     }
 
-    TreeNode *FindMin(TreeNode *p) {
-        return p->Left == nullptr ? p : FindMin(p->Left);
-    }
+    pair<TreeNode *, TreeNode *> FindAndRemoveMin(TreeNode *node) {
+        TreeNode *curr = node;
+        if (!node->Left)
+            return make_pair(curr, node->Right);
 
-    TreeNode *RemoveMin(TreeNode *p) {
-        if (p->Left == nullptr)
-            return p->Right;
-        p->Left = RemoveMin(p->Left);
-        --p->Number;
-        return Balance(p);
+        auto leftResult = FindAndRemoveMin(node->Left);
+        curr = leftResult.first;
+        node->Left = leftResult.second;
+        return make_pair(curr, Balance(node));
     }
 
     TreeNode *Remove(TreeNode *p, int position) {
@@ -186,8 +186,10 @@ private:
                         p = left;
                     }
                 } else {
-                    TreeNode *min = FindMin(right);
-                    min->Right = RemoveMin(right);
+                    auto minAndNewRight = FindAndRemoveMin(right);
+                    TreeNode *min = minAndNewRight.first;
+                    TreeNode *newRight = minAndNewRight.second;
+                    min->Right = newRight;
                     min->Left = left;
                     p = Balance(min);
                 }

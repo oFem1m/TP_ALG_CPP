@@ -1,165 +1,215 @@
 #include <iostream>
 #include <vector>
+#include <stack>
+#include <functional>
 
+using namespace std;
 
-using namespace ::std;
-const float MAX_ALPHA = 0.75;
-
-struct HashTableNode {
-    string key;
-};
-
-class HashTable {
-private:
-    float realSize = 0;
-    vector<HashTableNode> table;
-    vector<bool> deleted;
-
-    int hash1(const std::string &key) {
-        int hash = 0;
-        for (char i : key) {
-            hash = hash * 137 + i;
-        }
-        return hash;
-    }
-
-    int hash2(const std::string &key) {
-        int hash = 5;
-        for (int i = 0; i < key.size(); i++) {
-            hash += (key[i] + i) * 257;
-        }
-        return (2 * hash) + 1; // Возвращаем результат, который всегда больше нуля
-    }
-    void rehash() {
-        vector<HashTableNode> NewTable(2 * table.size());
-        vector<bool> NewDeleted(2 * deleted.size(), false);
-        for (int i = 0; i < table.size(); i++) {
-            if (!table[i].key.empty() && !deleted[i]) {
-                HashTableNode elem = table[i];
-                int x = hash1(elem.key) % NewTable.size();
-                int y = hash2(elem.key) % NewTable.size();
-                for (int j = 0; j < NewTable.size(); j++) {
-                    if (NewTable[x].key == elem.key) {
-                        break;
-                    }
-                    if (NewTable[x].key.empty()) {
-                        NewTable[x] = elem;
-                        break;
-                    }
-                    x = (x + y) % NewTable.size();
-                }
-            }
-        }
-        table = NewTable;
-        deleted = NewDeleted;
-    }
-
+class AVLTree {
 public:
-    explicit HashTable(size_t size) : table(size), deleted(size, false) {}
+    struct TreeNode {
+        int Key;
+        int Height;
+        int Number;
+        TreeNode *Left;
+        TreeNode *Right;
 
-    ~HashTable() {
-        table.clear();
-        deleted.clear();
+        explicit TreeNode(int key) : Key(key), Height(1), Left(nullptr), Right(nullptr), Number(1) {}
+    };
+
+    using CompareFunction = std::function<bool(int, int)>;
+
+    explicit AVLTree(CompareFunction compareFunc) : root(nullptr), compareFunction(compareFunc) {}
+
+    TreeNode *InsertAndGetPos(int key, int &pos) {
+        root = InsertAndGetPos(root, key, pos);
+        return root;
     }
 
-    bool Add(const HashTableNode& elem) {
-        float loadFactor = realSize / float(table.size());
-        if (loadFactor >= MAX_ALPHA) {
-            rehash();
+    TreeNode *Remove(int position) {
+        root = Remove(root, position);
+        return root;
+    }
+
+private:
+    TreeNode *root;
+    CompareFunction compareFunction;
+
+    static int Height(TreeNode *node) {
+        return node == nullptr ? 0 : node->Height;
+    }
+
+    static int Number(TreeNode *node) {
+        return node == nullptr ? 0 : node->Number;
+    }
+
+    static int BalanceFactor(TreeNode *node) {
+        return Height(node->Right) - Height(node->Left);
+    }
+
+    static TreeNode *RotateRight(TreeNode *p) {
+        TreeNode *pR = p->Left;
+        p->Left = pR->Right;
+        pR->Right = p;
+        p->Height = max(Height(p->Left), Height(p->Right)) + 1;
+        p->Number = Number(p->Left) + Number(p->Right) + 1;
+        pR->Height = max(Height(pR->Left), Height(pR->Right)) + 1;
+        pR->Number = Number(pR->Left) + Number(pR->Right) + 1;
+        return pR;
+    }
+
+    static TreeNode *RotateLeft(TreeNode *p) {
+        TreeNode *pL = p->Right;
+        p->Right = pL->Left;
+        pL->Left = p;
+        p->Height = max(Height(p->Left), Height(p->Right)) + 1;
+        p->Number = Number(p->Left) + Number(p->Right) + 1;
+        pL->Height = max(Height(pL->Left), Height(pL->Right)) + 1;
+        pL->Number = Number(pL->Left) + Number(pL->Right) + 1;
+        return pL;
+    }
+
+    static TreeNode *Balance(TreeNode *p) {
+        p->Height = max(Height(p->Left), Height(p->Right)) + 1;
+        p->Number = Number(p->Left) + Number(p->Right) + 1;
+
+        if (BalanceFactor(p) == 2) {
+            if (BalanceFactor(p->Right) < 0)
+                p->Right = RotateRight(p->Right);
+            return RotateLeft(p);
         }
-        // за x берём результат первой хеш-функции
-        int x = hash1(elem.key) % table.size();
-        // за y берём результат второй хеш-функции
-        int y = hash2(elem.key) % table.size();
-        // для сохранения индекса элемента, если он удалён
-        int DeletedItem = 0;
-        for (int i = 0; i < table.size(); i++) {
-            if (table[x].key == elem.key && !deleted[x]) {
-                return false;
-            }
-            if (deleted[x]) {
-                DeletedItem = x;
-                for (int j = 0; j < table.size(); j++) {
-                    x = (x + y) % table.size();
-                    if (table[x].key == elem.key && !deleted[x]) {
-                        return false;
+        if (BalanceFactor(p) == -2) {
+            if (BalanceFactor(p->Left) > 0)
+                p->Left = RotateLeft(p->Left);
+            return RotateRight(p);
+        }
+        return p;
+    }
+
+    TreeNode *InsertAndGetPos(TreeNode *root, int key, int &pos) {
+        if (root == nullptr) {
+            return new TreeNode(key);
+        }
+        ++(root->Number);
+        if (compareFunction(key, root->Key)) {
+            pos += Number(root->Right) + 1;
+            root->Left = InsertAndGetPos(root->Left, key, pos);
+        } else {
+            root->Right = InsertAndGetPos(root->Right, key, pos);
+        }
+        return Balance(root);
+    }
+
+    TreeNode *FindMin(TreeNode *p) {
+        return p->Left == nullptr ? p : FindMin(p->Left);
+    }
+
+    TreeNode *RemoveMin(TreeNode *p) {
+        if (p->Left == nullptr)
+            return p->Right;
+        p->Left = RemoveMin(p->Left);
+        --p->Number;
+        return Balance(p);
+    }
+
+    TreeNode *Remove(TreeNode *p, int position) {
+        if (p == nullptr)
+            return nullptr;
+        if (position >= p->Number)
+            return p;
+
+        int sum = 0;
+        stack<TreeNode *> nodes;
+
+        while (p != nullptr) {
+            int rightNumber = Number(p->Right);
+
+            if (position - sum > rightNumber) {
+                nodes.push(p);
+                p = p->Left;
+                sum += rightNumber + 1;
+            } else if (position - sum < rightNumber) {
+                if (p->Right != nullptr) {
+                    nodes.push(p);
+                    p = p->Right;
+                } else {
+                    break;
+                }
+            } else {
+                TreeNode *left = p->Left;
+                TreeNode *right = p->Right;
+                int key = p->Key;
+                delete p;
+
+                if (right == nullptr) {
+                    if (left == nullptr) {
+                        if (!nodes.empty()) {
+                            p = nodes.top();
+                            nodes.pop();
+                            if (p->Key > key) {
+                                p->Left = nullptr;
+                            } else {
+                                p->Right = nullptr;
+                            }
+                            --p->Number;
+                        } else {
+                            return nullptr;
+                        }
+                    } else {
+                        p = left;
                     }
+                } else {
+                    TreeNode *min = FindMin(right);
+                    min->Right = RemoveMin(right);
+                    min->Left = left;
+                    p = Balance(min);
                 }
-                table[DeletedItem] = elem;
-                deleted[DeletedItem] = false;
-                realSize++;
-                return true;
+                break;
             }
-            if (table[x].key.empty()) {
-                table[x] = elem;
-                deleted[x] = false;
-                realSize++;
-                return true;
-            }
-            x = (x + y) % table.size();
         }
-        return false;
-    }
-
-
-    bool Has(const HashTableNode elem) {
-        int x = hash1(elem.key) % table.size();
-        int y = hash2(elem.key) % table.size();
-        for (int i = 0; i < table.size(); i++) {
-            if (!table[x].key.empty()) {
-                if (table[x].key == elem.key && !deleted[x]) {
-                    return true;
-                }
+        TreeNode *p1;
+        while (!nodes.empty()) {
+            p1 = nodes.top();
+            --p1->Number;
+            if (p1->Key > p->Key) {
+                p1->Left = p;
             } else {
-                return false;
+                p1->Right = p;
             }
-            x = (x + y) % table.size();
+            p = Balance(p1);
+            nodes.pop();
         }
-        return false;
-    }
-
-    bool Delete(const HashTableNode& elem) {
-        int x = hash1(elem.key) % table.size();
-        int y = hash2(elem.key) % table.size();
-        for (int i = 0; i < table.size(); i++) {
-            if (!table[x].key.empty()) {
-                if (table[x].key == elem.key && !deleted[x]) {
-                    deleted[x] = true;
-                    realSize--;
-                    return true;
-                }
-            } else {
-                return false;
-            }
-            x = (x + y) % table.size();
-        }
-        return false;
+        return p;
     }
 };
+
+bool Compare(int a, int b) {
+    return a < b;
+}
 
 int main() {
-    HashTable table(8);
-
-    char op;
-    string key;
-    HashTableNode node;
-    while (std::cin >> op >> node.key) {
-        switch (op) {
-            case '?': {
-                std::cout << (table.Has(node) ? "OK" : "FAIL") << std::endl;
-                break;
-            }
-            case '+': {
-                cout << (table.Add(node) ? "OK" : "FAIL") << std::endl;
-                break;
-            }
-            case '-': {
-                std::cout << (table.Delete(node) ? "OK" : "FAIL") << std::endl;
-                break;
-            }
-            default:
-                return 1;
+    AVLTree avlTree(Compare);
+    int n;
+    cin >> n;
+    vector<int> result;
+    int key;
+    int position;
+    int operation;
+    for (int i = 0; i < n; ++i) {
+        cin >> operation;
+        if (operation == 1) {
+            position = 0;
+            cin >> key;
+            avlTree.InsertAndGetPos(key, position);
+            result.push_back(position);
+        } else if (operation == 2) {
+            cin >> key;
+            avlTree.Remove(key);
         }
     }
+    for (int i: result) {
+        cout << i << endl;
+    }
+
     return 0;
 }
