@@ -24,3 +24,11 @@ add_executable(rk2.4 rk2/4.cpp)
 add_executable(rk2.2 rk2/2.cpp)
 add_executable(rk2.3 rk2/3.cpp)
 add_executable(2.3.1 dz2/3.1.cpp)
+add_executable(3.2.1 dz3/2.1.cpp)
+add_executable(3.3.1 dz3/3.1.cpp)
+add_executable(3.4.1 dz3/4.1.cpp)
+add_executable(3.5.2 dz3/5.2.cpp
+        dz3/Graph.cpp
+        dz3/Graph.h
+        dz3/TSPSolver.cpp
+        dz3/TSPSolver.h)
