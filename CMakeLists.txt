@@ -27,8 +27,14 @@ add_executable(2.3.1 dz2/3.1.cpp)
 add_executable(3.2.1 dz3/2.1.cpp)
 add_executable(3.3.1 dz3/3.1.cpp)
 add_executable(3.4.1 dz3/4.1.cpp)
-add_executable(3.5.2 dz3/5.2.cpp
-        dz3/Graph.cpp
-        dz3/Graph.h
-        dz3/TSPSolver.cpp
-        dz3/TSPSolver.h)
+add_executable(3.1.1 dz3/1_1/1.1.cpp
+        dz3/1_1/ListGraph.cpp
+        dz3/1_1/ListGraph.h
+        dz3/1_1/IGraph.h
+        dz3/1_1/MatrixGraph.cpp
+        dz3/1_1/MatrixGraph.h
+        dz3/1_1/SetGraph.cpp
+        dz3/1_1/SetGraph.h
+        dz3/1_1/ArcGraph.cpp
+        dz3/1_1/ArcGraph.h
+)
